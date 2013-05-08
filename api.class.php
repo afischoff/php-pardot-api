@@ -11,19 +11,29 @@
 
 class API
 {
+	// API wrapper constants
 	const URI = 'https://pi.pardot.com/api/';
 	const VERSION = '/version/3';
 	const STAT_SUCCESS = 'ok';
 
-	// API Error Codes
+	// API Error Code constants
 	const ERROR_INVALID_KEY = 1; // invalid or expired
 
+	// API Object constants
+	const OBJ_EMAIL = 'email';
+
+	// API Operation constants
+	const OPR_READ = 'read';
+
+	// private instance variables
 	private $email;
 	private $password;
 	private $connection;
 	private $debug;
+	private $logging;
 	private $logfile;
 
+	// public instance variables
 	public $postFields;
 
 	/**
@@ -52,11 +62,18 @@ class API
 			die('FATAL No pardot_config.php file found');
 		}
 
+		// set defaults
+		if (empty($pardot_config['connection']))	$pardot_config['connection'] = 'cURL';
+		if (empty($pardot_config['debug'])) 		$pardot_config['debug'] = false;
+		if (empty($pardot_config['logging'])) 		$pardot_config['logging'] = false;
+		if (empty($pardot_config['logfile'])) 		$pardot_config['logfile'] = 'pardot.log';
+
 		// store initialization values
 		$this->email = $pardot_config['email'];
 		$this->password = $pardot_config['password'];
 		$this->connection = $pardot_config['connection'];
 		$this->debug = $pardot_config['debug'];
+		$this->logging = $pardot_config['logging'];
 		$this->logfile = $pardot_config['logfile'];
 
 		// set default post fields
@@ -82,16 +99,15 @@ class API
 	private function __wakeup() {}
 
 	/**
-	 * Function performs an operation on a single Pardot object as defined by $id or $email
+	 * Function performs an operation on a single Pardot object as defined by $id
 	 *
 	 * @param string $object - The objects exposed through the API (list, opportunity, prospect, prospectAccount, user, visit, visitor)
 	 * @param string $operation - The operation to perform (read, update, delete, undelete)
 	 * @param int $id - The ID of the object being affected
-	 * @param string $email - The email address of the object being affected
 	 * @param array $parameters - An array of field => value pairs to be set.
 	 * @return array
 	 */
-	public function doOperationByIdOrEmail($object, $operation, $id = null, $email = null, $parameters = null) {
+	public function doOperationById($object, $operation, $id = null, $parameters = null) {
 		// setup default return structure
 		$returnStructure = array(
 			'success' => false,
@@ -99,9 +115,9 @@ class API
 		);
 
 		// validate inputs - $id or $email is required
-		if (is_null($id) && is_null($email)) {
+		if (is_null($id)) {
 			// debug message
-			$errMsg = 'FATAL: doOperationByIdOrEmail() Invalid input - $id or $email is required';
+			$errMsg = 'FATAL: doOperationById() Invalid input - $id is required';
 			$this->debugLog($errMsg);
 
 			// update return structure
@@ -112,13 +128,7 @@ class API
 		}
 
 		// build request URL
-		$url = self::URI . $object . self::VERSION . '/do/' . $operation;
-
-		if ( ! is_null($id)) {
-			$url .= '/id/' . $id;
-		} else {
-			$url .= '/email/' . $email;
-		}
+		$url = self::URI . $object . self::VERSION . '/do/' . $operation . '/id/' . $id;
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
@@ -366,10 +376,12 @@ class API
 		$timeStr = $timeStr->format(\DateTime::ISO8601);
 
 		// append debug messages to log file
-		if ( ! is_null($this->logfile)) {
-			error_log($timeStr . ' {Pardot API} ' . $message . "\n", 3, $this->logfile);
-		} else {
-			error_log($timeStr . ' {Pardot API} ' . $message . "\n");
+		if ($this->logging) {
+			if ( ! is_null($this->logfile)) {
+				error_log($timeStr . ' {Pardot API} ' . $message . "\n", 3, $this->logfile);
+			} else {
+				error_log($timeStr . ' {Pardot API} ' . $message . "\n");
+			}
 		}
 	}
 

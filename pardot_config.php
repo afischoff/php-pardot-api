@@ -1,11 +1,22 @@
 <?php
 $pardot_config = array(
-	'email' => 'andy.fischoff+api@pardot.com',
-	'password' => 'Pardot07!23',
-	'user_key' => '3c177b33f38d3150ebddb4f9d6ff36c8',
 
-	'connection' => 'cURL',
+	/*
+	 * Pardot User settings:
+	 */
+	'email' => '',
+	'password' => '',
+	'user_key' => '', // found here: https://pi.pardot.com/account
 
-	'debug' => false,
-	'logfile' => 'pardot.log'
+	/*
+	 * HTTP connection handler
+	 */
+	'connection' => '', // defaults to cURL if left blank
+
+	/*
+	 * Debugging and logging settings
+	 */
+	'debug' => false, // echos debug info to the screen
+	'logging' => false, // turns file based debug info logging on/off
+	'logfile' => 'pardot.log' // logs debug info to file. If this is empty, debug info will be logged in the PHP error log
 );
