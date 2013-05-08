@@ -1,13 +1,13 @@
 <?php namespace Pardot;
 
-/*
-| Pardot PHP API Wrapper v1.0
-|
-|
-|
-|
-|
-*/
+/**
+ * Class API
+ *
+ * Pardot singleton REST/JSON API wrapper
+ *
+ * @package Pardot
+ * @author Andy Fischoff <andy.fischoff@pardot.com>
+ */
 
 class API
 {
@@ -17,13 +17,25 @@ class API
 	const STAT_SUCCESS = 'ok';
 
 	// API Error Code constants
-	const ERROR_INVALID_KEY = 1; // invalid or expired
+	const ERR_INVALID_KEY = 1; // invalid or expired
 
 	// API Object constants
 	const OBJ_EMAIL = 'email';
+	const OBJ_LIST = 'list';
+	const OBJ_OPPORTUNITY = 'opportunity';
+	const OBJ_PROSPECT = 'prospect';
+	const OBJ_PROSPECT_ACCOUNT = 'prospectAccount';
+	const OBJ_USER = 'user';
+	const OBJ_VISIT = 'visit';
+	const OBJ_VISITOR = 'visitor';
 
 	// API Operation constants
+	const OPR_CREATE = 'create';
 	const OPR_READ = 'read';
+	const OPR_UPDATE = 'update';
+	const OPR_DELETE = 'delete';
+	const OPR_UNDELETE = 'undelete';
+	const OPR_QUERY = 'query';
 
 	// private instance variables
 	private $email;
@@ -100,9 +112,10 @@ class API
 
 	/**
 	 * Function performs an operation on a single Pardot object as defined by $id
+	 * This makes a request with the URL: https://pi.pardot.com/api/<$object>/version/3/do/<$operation>/id/<$id>
 	 *
-	 * @param string $object - The objects exposed through the API (list, opportunity, prospect, prospectAccount, user, visit, visitor)
-	 * @param string $operation - The operation to perform (read, update, delete, undelete)
+	 * @param string $object - The objects exposed through the API (see OBJ_* constants above)
+	 * @param string $operation - The operation to perform (see OPR_* constants above)
 	 * @param int $id - The ID of the object being affected
 	 * @param array $parameters - An array of field => value pairs to be set.
 	 * @return array
@@ -140,9 +153,54 @@ class API
 	}
 
 	/**
-	 * Performs a query on a Pardot object
+	 * Function performs an operation on a single Pardot object as defined by $field and $fieldValue
+	 * This makes a request with the URL:
+	 * https://pi.pardot.com/api/<$object>/version/3/do/<$operation>/<$field>/<$fieldValue>
 	 *
-	 * @param string $object - The objects exposed through the API (list, opportunity, prospect, prospectAccount, user, visit, visitor)
+	 * @param string $object - The objects exposed through the API (see OBJ_* constants above)
+	 * @param string $operation - The operation to perform (see OPR_* constants above)
+	 * @param string $field - The reference field of the object being affected
+	 * @param string $fieldValue - The value of field referenced in $field
+	 * @param array $parameters - An array of field => value pairs to be set.
+	 * @return array
+	 */
+	public function doOperationByField($object, $operation, $field = null, $fieldValue = null, $parameters = null) {
+		// setup default return structure
+		$returnStructure = array(
+			'success' => false,
+			'err_msg' => null
+		);
+
+		// validate inputs - $id or $email is required
+		if (is_null($field) || is_null($fieldValue)) {
+			// debug message
+			$errMsg = 'FATAL: doOperationByField() Invalid input - $field and $fieldValue are required';
+			$this->debugLog($errMsg);
+
+			// update return structure
+			$returnStructure['err_msg'] = $errMsg;
+
+			// return
+			return $returnStructure;
+		}
+
+		// build request URL
+		$url = self::URI . $object . self::VERSION . '/do/' . $operation . '/' . urlencode($field) . '/' . urlencode($fieldValue);
+
+		// merge post fields and parameters
+		if (is_array($parameters)) {
+			$this->postFields = array_merge($this->postFields, $parameters);
+		}
+
+		// do request and return
+		return $this->makeRequest($url, $this->postFields);
+	}
+
+	/**
+	 * Performs a query on a Pardot object
+	 * This makes a request with the URL: https://pi.pardot.com/api/<$object>/version/3/do/query
+	 *
+	 * @param string $object - The objects exposed through the API (see OBJ_* constants above)
 	 * @param array $parameters - An array of field => value pairs to be set. Also used for limit and offset
 	 * @return array
 	 */
@@ -190,7 +248,7 @@ class API
 				// return
 				return $returnStructure;
 
-			} else if ($resp['resp_decoded']->{'@attributes'}->err_code == self::ERROR_INVALID_KEY) {
+			} else if ($resp['resp_decoded']->{'@attributes'}->err_code == self::ERR_INVALID_KEY) {
 
 				// API key expired - try authenticating again
 				if ( ! $this->authenticate() ) {
