@@ -14,7 +14,9 @@ class API
 	const URI = 'https://pi.pardot.com/api/';
 	const VERSION = '/version/3';
 	const STAT_SUCCESS = 'ok';
-	const API_EXPIRED_MSG = 'Invalid API key or user key';
+
+	// API Error Codes
+	const ERROR_INVALID_KEY = 1; // invalid or expired
 
 	private $email;
 	private $password;
@@ -25,33 +27,59 @@ class API
 	public $postFields;
 
 	/**
-	 * Constructor method for new API wrapper instances
+	 * Singleton instance generator
 	 *
-	 * @param string $email - The API user's email address.
-	 * @param string $password - The API user's password.
-	 * @param string $user_key - The API user's user_key, as found in the User Menu > Settings
-	 * @param string $connection - HTTP request handler. cURL is default
-	 * @param bool $debug - When enabled, log messages will be echoed to the screen.
-	 * @param string $logfile - When not null, debug messages will be appended to the file
+	 * @return API
 	 */
-	public function __construct($email, $password, $user_key, $connection = 'cURL', $debug = false, $logfile = null)
+	public static function Instance()
 	{
+		static $inst = null;
+		if ($inst === null) {
+			$inst = new static;
+		}
+		return $inst;
+	}
+
+	/**
+	 * Constructor method for new API wrapper instances
+	 */
+	protected function __construct() {
+		// load config from file
+		include(__DIR__ . DIRECTORY_SEPARATOR . 'pardot_config.php');
+
+		// exit here if we can't load a configuration file
+		if (empty($pardot_config)) {
+			die('FATAL No pardot_config.php file found');
+		}
+
 		// store initialization values
-		$this->email = $email;
-		$this->password = $password;
-		$this->connection = $connection;
-		$this->debug = $debug;
-		$this->logfile = $logfile;
+		$this->email = $pardot_config['email'];
+		$this->password = $pardot_config['password'];
+		$this->connection = $pardot_config['connection'];
+		$this->debug = $pardot_config['debug'];
+		$this->logfile = $pardot_config['logfile'];
 
 		// set default post fields
 		$this->postFields = array(
 			'format' => 'json',
-			'user_key' => $user_key
+			'user_key' => $pardot_config['user_key']
 		);
 
-		// authenticate to get and store the api key
-		$this->authenticate();
+		// authenticate or exit here
+		if ( ! $this->authenticate() ) {
+			die('FATAL Pardot API Authentication Failed!');
+		}
 	}
+
+	/**
+	 * prevent clone function from cloning this class
+	 */
+	private function __clone() {}
+
+	/**
+	 * prevent unserialize() from instantiating this class
+	 */
+	private function __wakeup() {}
 
 	/**
 	 * Function performs an operation on a single Pardot object as defined by $id or $email
@@ -63,8 +91,7 @@ class API
 	 * @param array $parameters - An array of field => value pairs to be set.
 	 * @return array
 	 */
-	public function doOperationByIdOrEmail($object, $operation, $id = null, $email = null, $parameters = null)
-	{
+	public function doOperationByIdOrEmail($object, $operation, $id = null, $email = null, $parameters = null) {
 		// setup default return structure
 		$returnStructure = array(
 			'success' => false,
@@ -72,11 +99,10 @@ class API
 		);
 
 		// validate inputs - $id or $email is required
-		if (is_null($id) && is_null($email))
-		{
+		if (is_null($id) && is_null($email)) {
 			// debug message
 			$errMsg = 'FATAL: doOperationByIdOrEmail() Invalid input - $id or $email is required';
-			$this->debuglog($errMsg);
+			$this->debugLog($errMsg);
 
 			// update return structure
 			$returnStructure['err_msg'] = $errMsg;
@@ -88,18 +114,14 @@ class API
 		// build request URL
 		$url = self::URI . $object . self::VERSION . '/do/' . $operation;
 
-		if ( ! is_null($id))
-		{
+		if ( ! is_null($id)) {
 			$url .= '/id/' . $id;
-
 		} else {
-
 			$url .= '/email/' . $email;
 		}
 
 		// merge post fields and parameters
-		if (is_array($parameters))
-		{
+		if (is_array($parameters)) {
 			$this->postFields = array_merge($this->postFields, $parameters);
 		}
 
@@ -114,14 +136,12 @@ class API
 	 * @param array $parameters - An array of field => value pairs to be set. Also used for limit and offset
 	 * @return array
 	 */
-	public function queryObject($object, $parameters)
-	{
+	public function queryObject($object, $parameters = null) {
 		// build request URL
 		$url = self::URI . $object . self::VERSION . '/do/query';
 
 		// merge post fields and parameters
-		if (is_array($parameters))
-		{
+		if (is_array($parameters)) {
 			$this->postFields = array_merge($this->postFields, $parameters);
 		}
 
@@ -136,8 +156,7 @@ class API
 	 * @param $postFields
 	 * @return array
 	 */
-	public function makeRequest($url, $postFields = null)
-	{
+	public function makeRequest($url, $postFields = null) {
 		// setup default return structure
 		$returnStructure = array(
 			'success' => false,
@@ -148,15 +167,12 @@ class API
 		$resp = $this->sendPostRequest($url, $postFields);
 
 		// return if response is invalid
-		if ( ! $resp['success'])
-		{
+		if ( ! $resp['success']) {
 			return $returnStructure;
 
 		} else {
-
 			// if response is successful, return. Else if api_key expired, authenticate and try again
-			if ($resp['resp_decoded']->{'@attributes'}->stat == self::STAT_SUCCESS)
-			{
+			if ($resp['resp_decoded']->{'@attributes'}->stat == self::STAT_SUCCESS) {
 				// update return structure
 				$returnStructure['success'] = true;
 				$returnStructure['response'] = $resp['resp_decoded'];
@@ -164,11 +180,10 @@ class API
 				// return
 				return $returnStructure;
 
-			} else if ($resp['resp_decoded']->err == self::API_EXPIRED_MSG) {
+			} else if ($resp['resp_decoded']->{'@attributes'}->err_code == self::ERROR_INVALID_KEY) {
 
 				// API key expired - try authenticating again
-				if ( ! $this->authenticate() )
-				{
+				if ( ! $this->authenticate() ) {
 					// return
 					return $returnStructure;
 				}
@@ -177,8 +192,7 @@ class API
 				$resp = $this->sendPostRequest($url, $postFields);
 
 				// if response is successful, return
-				if ($resp['resp_decoded']->{'@attributes'}->stat == self::STAT_SUCCESS)
-				{
+				if ($resp['resp_decoded']->{'@attributes'}->stat == self::STAT_SUCCESS) {
 					// update return structure
 					$returnStructure['success'] = true;
 					$returnStructure['response'] = $resp['resp_decoded'];
@@ -187,12 +201,14 @@ class API
 					return $returnStructure;
 
 				} else {
-
 					// return
 					return $returnStructure;
 				}
 
 			}
+
+			// should never get here
+			return $returnStructure;
 		}
 	}
 
@@ -201,8 +217,7 @@ class API
 	 *
 	 * @return bool
 	 */
-	private function authenticate()
-	{
+	private function authenticate() {
 		// build request URL
 		$url = self::URI . 'login' . self::VERSION;
 
@@ -212,7 +227,7 @@ class API
 		$postFields['password'] = $this->password;
 
 		// debug messages
-		$this->debuglog('Trying to authenticate...');
+		$this->debugLog('Trying to authenticate...');
 
 		// send request
 		$resp = $this->sendPostRequest($url, $postFields);
@@ -220,20 +235,18 @@ class API
 		// if successful, store the api key and return
 		if ($resp['success']
 			&& $resp['resp_decoded']->{'@attributes'}->stat == self::STAT_SUCCESS
-			&& $resp['resp_decoded']->api_key)
-		{
-			// debug messages
-			$this->debuglog('Authentication Successful!');
+			&& $resp['resp_decoded']->api_key) {
+				// debug messages
+				$this->debugLog('Authentication Successful!');
 
-			// store api key
-			$this->postFields['api_key'] = $resp['resp_decoded']->api_key;
+				// store api key
+				$this->postFields['api_key'] = $resp['resp_decoded']->api_key;
 
-			return true;
+				return true;
 
 		} else {
-
 			// debug messages
-			$this->debuglog('Authentication Failed!');
+			$this->debugLog('Authentication Failed!');
 
 			// unset api key
 			unset($this->postFields['api_key']);
@@ -249,8 +262,7 @@ class API
 	 * @param array $postFields - Post fields in array form
 	 * @return array return structure
 	 */
-	private function sendPostRequest($url, $postFields = null)
-	{
+	private function sendPostRequest($url, $postFields = null) {
 		// setup default return structure
 		$returnStructure = array(
 			'success' => false,
@@ -260,19 +272,15 @@ class API
 		);
 
 		// use default post fields if none are passed in
-		if (is_null($postFields))
-		{
+		if (is_null($postFields)) {
 			$postFields = $this->postFields;
 		}
 
 		// build query string from $postFields
 		$postFieldsString = '';
-
-		foreach ($postFields as $field => $value)
-		{
+		foreach ($postFields as $field => $value) {
 			// handle boolean values
-			if ($value === true)
-			{
+			if ($value === true) {
 				$value = 'true';
 			} else if ($value === false) {
 				$value = 'false';
@@ -284,12 +292,11 @@ class API
 		$postFieldsString = substr($postFieldsString, 0, -1);
 
 		// debug messages
-		$this->debuglog('Making post request: ' . $url);
-		$this->debuglog('Posting variables: ' . $postFieldsString);
+		$this->debugLog('Making post request: ' . $url);
+		$this->debugLog('Posting variables: ' . $postFieldsString);
 
 		// handle http post by connection type
-		switch ($this->connection)
-		{
+		switch ($this->connection) {
 			case 'cURL':
 				// open connection
 				$ch = curl_init();
@@ -305,10 +312,9 @@ class API
 				$returnStructure['resp_code'] = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
 				// if an error happened, log and return
-				if ($returnStructure['resp_body'] === false)
-				{
+				if ($returnStructure['resp_body'] === false) {
 					// log error message
-					$this->debuglog('FATAL cURL error: ' . curl_error($ch));
+					$this->debugLog('FATAL cURL error: ' . curl_error($ch));
 
 					// close connection
 					curl_close($ch);
@@ -324,19 +330,17 @@ class API
 		}
 
 		// debug messages
-		$this->debuglog('Response code received: ' . $returnStructure['resp_code']);
-		$this->debuglog('Response body received: ' . $returnStructure['resp_body']);
+		$this->debugLog('Response code received: ' . $returnStructure['resp_code']);
+		$this->debugLog('Response body received: ' . $returnStructure['resp_body']);
 
 		// convert response to data object
-		switch ($postFields['format'])
-		{
+		switch ($postFields['format']) {
 			case 'json':
 				// decode JSON string
 				$dataObj = json_decode($returnStructure['resp_body']);
 
 				// update return structure
-				if ( ! is_null($dataObj))
-				{
+				if ( ! is_null($dataObj)) {
 					$returnStructure['success'] = true;
 					$returnStructure['resp_decoded'] = $dataObj;
 				}
@@ -352,18 +356,20 @@ class API
 	 *
 	 * @param string $message
 	 */
-	private function debuglog($message)
-	{
+	private function debugLog($message) {
 		// echo debug message if debug mode is enabled
-		if ($this->debug)
-		{
+		if ($this->debug) {
 			echo $message . "\n";
 		}
 
+		$timeStr = new \DateTime();
+		$timeStr = $timeStr->format(\DateTime::ISO8601);
+
 		// append debug messages to log file
-		if ( ! is_null($this->logfile))
-		{
-			//TODO: get file handler and append info
+		if ( ! is_null($this->logfile)) {
+			error_log($timeStr . ' {Pardot API} ' . $message . "\n", 3, $this->logfile);
+		} else {
+			error_log($timeStr . ' {Pardot API} ' . $message . "\n");
 		}
 	}
 
