@@ -372,11 +372,14 @@ class API
 			echo $message . "\n";
 		}
 
-		$timeStr = new \DateTime();
-		$timeStr = $timeStr->format(\DateTime::ISO8601);
-
 		// append debug messages to log file
 		if ($this->logging) {
+
+			// get timestamp
+			$timeStr = new \DateTime();
+			$timeStr = $timeStr->format(\DateTime::ISO8601);
+
+			// log to separate file or PHP error log
 			if ( ! is_null($this->logfile)) {
 				error_log($timeStr . ' {Pardot API} ' . $message . "\n", 3, $this->logfile);
 			} else {
