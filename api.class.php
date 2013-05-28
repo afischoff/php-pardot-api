@@ -13,7 +13,7 @@ class API
 {
 	// API wrapper constants
 	const URI = 'https://pi.pardot.com/api/';
-	const VERSION = '/version/3';
+	const VERSION = 3;
 	const STAT_SUCCESS = 'ok';
 
 	// API Error Code constants
@@ -127,7 +127,7 @@ class API
 			'err_msg' => null
 		);
 
-		// validate inputs - $id or $email is required
+		// validate input - $id is required
 		if (is_null($id)) {
 			// debug message
 			$errMsg = 'FATAL: doOperationById() Invalid input - $id is required';
@@ -141,7 +141,8 @@ class API
 		}
 
 		// build request URL
-		$url = self::URI . $object . self::VERSION . '/do/' . $operation . '/id/' . $id;
+		$urlparams = array('do' => $operation, 'id' => $id);
+		$url = $this->buildURL($object, $urlparams);
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
@@ -185,7 +186,8 @@ class API
 		}
 
 		// build request URL
-		$url = self::URI . $object . self::VERSION . '/do/' . $operation . '/' . urlencode($field) . '/' . urlencode($fieldValue);
+		$urlparams = array('do' => $operation, $field => $fieldValue);
+		$url = $this->buildURL($object, $urlparams);
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
@@ -206,7 +208,8 @@ class API
 	 */
 	public function queryObject($object, $parameters = null) {
 		// build request URL
-		$url = self::URI . $object . self::VERSION . '/do/query';
+		$urlparams = array('do' => 'query');
+		$url = $this->buildURL($object, $urlparams);
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
@@ -287,7 +290,7 @@ class API
 	 */
 	private function authenticate() {
 		// build request URL
-		$url = self::URI . 'login' . self::VERSION;
+		$url = $this->buildURL('login');
 
 		// compile post fields
 		$postFields = $this->postFields;
@@ -344,20 +347,17 @@ class API
 			$postFields = $this->postFields;
 		}
 
-		// build query string from $postFields
-		$postFieldsString = '';
-		foreach ($postFields as $field => $value) {
-			// handle boolean values
+		// convert boolean to string
+		foreach ($postFields as &$value) {
 			if ($value === true) {
 				$value = 'true';
 			} else if ($value === false) {
 				$value = 'false';
 			}
-
-			// append to string
-			$postFieldsString .= $field . '=' . urlencode($value) . '&';
 		}
-		$postFieldsString = substr($postFieldsString, 0, -1);
+
+		// build post field string
+		$postFieldsString = http_build_query($postFields);
 
 		// debug messages
 		$this->debugLog('Making post request: ' . $url);
@@ -427,7 +427,7 @@ class API
 	private function debugLog($message) {
 		// echo debug message if debug mode is enabled
 		if ($this->debug) {
-			echo $message . "\n";
+			echo $message . PHP_EOL;
 		}
 
 		// append debug messages to log file
@@ -439,11 +439,28 @@ class API
 
 			// log to separate file or PHP error log
 			if ( ! is_null($this->logfile)) {
-				error_log($timeStr . ' {Pardot API} ' . $message . "\n", 3, $this->logfile);
+				error_log($timeStr . ' {Pardot API} ' . $message . PHP_EOL, 3, $this->logfile);
 			} else {
-				error_log($timeStr . ' {Pardot API} ' . $message . "\n");
+				error_log($timeStr . ' {Pardot API} ' . $message . PHP_EOL);
 			}
 		}
+	}
+
+	/**
+	 * Used for building API request URLs
+	 *
+	 * @param string $object - API object (see OBJ_* constants)
+	 * @param array $params - array of key/val pairs for building the URL
+	 * @return string - formatted request string
+	 */
+	private function buildURL($object, $params = null) {
+		$url  = self::URI . $object . '/version/' . self::VERSION . '/';
+		if ($params) {
+			foreach ($params as $field => $value) {
+				$url .= $field . '/' . urlencode($value) . '/';
+			}
+		}
+		return $url;
 	}
 
 }
