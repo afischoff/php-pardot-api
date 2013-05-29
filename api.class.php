@@ -477,7 +477,7 @@ class API
 		$url  = self::URI . $object . '/version/' . self::VERSION . '/';
 		if ($params) {
 			foreach ($params as $field => $value) {
-				$url .= $field . '/' . urlencode($value) . '/';
+				$url .= urlencode($field) . '/' . urlencode($value) . '/';
 			}
 		}
 		return $url;
