@@ -23,7 +23,7 @@ The <code>$object</code> and <code>$operation</code> values are the constants re
 
 <pre>
 <code>
-<?php
+&lt;?php
 // namespace config
 use \Pardot\API as API;
 
