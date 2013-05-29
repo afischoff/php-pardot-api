@@ -336,7 +336,9 @@ class API
 			unset($this->postFields['api_key']);
 
 			// delete stored api file
-			unlink(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE);
+			if (file_exists(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE)) {
+				unlink(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE);
+			}
 
 			return false;
 		}
