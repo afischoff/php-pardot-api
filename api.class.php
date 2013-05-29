@@ -12,6 +12,7 @@
 class API
 {
 	// API wrapper constants
+	const API_KEY_FILE = 'pardot_api_key';
 	const URI = 'https://pi.pardot.com/api/';
 	const VERSION = 3;
 	const STAT_SUCCESS = 'ok';
@@ -51,7 +52,7 @@ class API
 	/**
 	 * Singleton instance generator
 	 *
-	 * @return API
+	 * @return static API class
 	 */
 	public static function Instance()
 	{
@@ -94,8 +95,14 @@ class API
 			'user_key' => $pardot_config['user_key']
 		);
 
+		// try to read api_key from file
+		$api_key_file = __DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE;
+		if (file_exists($api_key_file)) {
+			$this->postFields['api_key'] = file_get_contents($api_key_file);
+		}
+
 		// authenticate or exit here
-		if ( ! $this->authenticate() ) {
+		if (empty($this->postFields['api_key']) && ! $this->authenticate() ) {
 			die('FATAL Pardot API Authentication Failed!');
 		}
 	}
@@ -286,7 +293,7 @@ class API
 	/**
 	 * Makes an authentication request and stores the api_key for future requests
 	 *
-	 * @return bool
+	 * @return bool whether authentication was successful
 	 */
 	private function authenticate() {
 		// build request URL
@@ -313,6 +320,13 @@ class API
 				// store api key
 				$this->postFields['api_key'] = $resp['resp_decoded']->api_key;
 
+				// store in file for future requests
+				if (is_writable(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE)) {
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE, $this->postFields['api_key']);
+				} else {
+					$this->debugLog("Warning: can't write api key to file: " . self::API_KEY_FILE);
+				}
+
 				return true;
 
 		} else {
@@ -321,6 +335,9 @@ class API
 
 			// unset api key
 			unset($this->postFields['api_key']);
+
+			// delete stored api file
+			unlink(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE);
 
 			return false;
 		}
@@ -422,7 +439,7 @@ class API
 	/**
 	 * Optionally writes debug messages to the screen and log file
 	 *
-	 * @param string $message
+	 * @param string $message the message which gets written to the logs
 	 */
 	private function debugLog($message) {
 		// echo debug message if debug mode is enabled
