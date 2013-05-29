@@ -321,7 +321,9 @@ class API
 				$this->postFields['api_key'] = $resp['resp_decoded']->api_key;
 
 				// store in file for future requests
-				$file_written = file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE, $this->postFields['api_key']);
+				$file_written = file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . self::API_KEY_FILE,
+					$this->postFields['api_key']);
+
 				if ( ! $file_written) {
 					$this->debugLog("Warning: can't write api key to file: " . self::API_KEY_FILE);
 				}
