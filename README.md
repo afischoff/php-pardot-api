@@ -15,10 +15,10 @@ PHP wrapper for the Pardot RESTful API
 # Usage #
 1. Set the namespace: <use \Pardot\API as API;>
 2. Make requests using the 3 main request functions:
-	1. <doOperationById($object, $operation, $id = null, $parameters = null)>
-	2. <doOperationByField($object, $operation, $field = null, $fieldValue = null, $parameters = null)>
-	3. <queryObject($object, $parameters = null)>
+	1. <code>doOperationById($object, $operation, $id = null, $parameters = null)</code>
+	2. <code>doOperationByField($object, $operation, $field = null, $fieldValue = null, $parameters = null)</code>
+	3. <code>queryObject($object, $parameters = null)</code>
 
-The <$object> and <$operation> values are the constants referenced at the top of the class file.
+The <code>$object</code> and <code>$operation</code> values are the constants referenced at the top of the class file.
 
 See the example.php file for complete usage examples.
