@@ -4,9 +4,9 @@ $pardot_config = array(
 	/*
 	 * Pardot User settings:
 	 */
-	'email' => 'andy.fischoff+API@pardot.com',
-	'password' => 'roland535!43',
-	'user_key' => '3c177b33f38d3150ebddb4f9d6ff36c8', // found here: https://pi.pardot.com/account
+	'email' => '',
+	'password' => '',
+	'user_key' => '', // found here: https://pi.pardot.com/account
 
 	/*
 	 * HTTP connection handler
