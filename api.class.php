@@ -266,6 +266,9 @@ class API
 					return $returnStructure;
 				}
 
+				// merge in new API key
+				$postFields = array_merge($postFields, $this->postFields);
+
 				// try api request again
 				$resp = $this->sendPostRequest($url, $postFields);
 
