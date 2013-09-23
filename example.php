@@ -1,10 +1,6 @@
 <?php
-
-// class auto load handler
-spl_autoload_register(function ($class) {
-	$parts = explode('\\', $class);
-	require strtolower( end($parts) ) . '.class.php';
-});
+// composer autoloader
+require 'vendor/autoload.php';
 
 // namespace config
 use \Pardot\API as API;

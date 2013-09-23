@@ -1,0 +1,19 @@
+{
+    "name": "afischoff/php-pardot-api",
+    "description": "An API wrapper for the Pardot (a salesforce.com company) API.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Andy Fischoff",
+            "email": "afischoff@salesforce.com"
+        }
+    ],
+    "require": {
+
+    },
+    "autoload": {
+        "psr-0": {
+            "Pardot": "src/"
+        }
+    }
+}
