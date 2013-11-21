@@ -153,11 +153,11 @@ class API
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
-			$this->postFields = array_merge($this->postFields, $parameters);
+			$postFields = array_merge($this->postFields, $parameters);
 		}
 
 		// do request and return
-		return $this->makeRequest($url, $this->postFields);
+		return $this->makeRequest($url, $postFields);
 	}
 
 	/**
@@ -198,11 +198,11 @@ class API
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
-			$this->postFields = array_merge($this->postFields, $parameters);
+			$postFields = array_merge($this->postFields, $parameters);
 		}
 
 		// do request and return
-		return $this->makeRequest($url, $this->postFields);
+		return $this->makeRequest($url, $postFields);
 	}
 
 	/**
@@ -220,11 +220,11 @@ class API
 
 		// merge post fields and parameters
 		if (is_array($parameters)) {
-			$this->postFields = array_merge($this->postFields, $parameters);
+			$postFields = array_merge($this->postFields, $parameters);
 		}
 
 		// do request and return
-		return $this->makeRequest($url, $this->postFields);
+		return $this->makeRequest($url, $postFields);
 	}
 
 	/**
