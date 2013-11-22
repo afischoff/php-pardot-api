@@ -152,6 +152,7 @@ class API
 		$url = $this->buildURL($object, $urlparams);
 
 		// merge post fields and parameters
+		$postFields = $this->postFields;
 		if (is_array($parameters)) {
 			$postFields = array_merge($this->postFields, $parameters);
 		}
@@ -197,6 +198,7 @@ class API
 		$url = $this->buildURL($object, $urlparams);
 
 		// merge post fields and parameters
+		$postFields = $this->postFields;
 		if (is_array($parameters)) {
 			$postFields = array_merge($this->postFields, $parameters);
 		}
@@ -219,6 +221,7 @@ class API
 		$url = $this->buildURL($object, $urlparams);
 
 		// merge post fields and parameters
+		$postFields = $this->postFields;
 		if (is_array($parameters)) {
 			$postFields = array_merge($this->postFields, $parameters);
 		}
