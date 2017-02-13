@@ -1,5 +1,13 @@
 <?php
 namespace Pardot;
+/**
+ * Class Config
+ *
+ * Pardot Config File for REST/JSON API wrapper
+ *
+ * @package Pardot
+ * @author  Chris Whittle <cwhittl@gmail.com>
+ */
 
 class Config
 {
