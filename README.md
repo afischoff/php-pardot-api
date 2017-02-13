@@ -26,9 +26,15 @@ The <code>$object</code> and <code>$operation</code> values are the constants re
 &lt;?php
 // namespace config
 use \Pardot\API as API;
-
+$pardot_config = new \Pardot\Config(
+    array(
+    'email' => "<YOUR PARDOT EMAIL>",
+    'password' => "<YOUR PARDOT PASSWORD>",
+    'userkey' => "<YOUR PARDOT USERKEY>",
+    )
+);
 // get all prospects updated within the last 2 hours
-$prospects = API::Instance()->queryObject(API::OBJ_PROSPECT, array('updated_after' => '2 hours ago'));
+$prospects = API::Instance($pardot_config)->queryObject(API::OBJ_PROSPECT, array('updated_after' => '2 hours ago'));
 var_dump($prospects);
 </code>
 </pre>
