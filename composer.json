@@ -1,5 +1,5 @@
 {
-    "name": "afischoff/php-pardot-api",
+    "name": "cwhittl/php-pardot-api",
     "description": "An API wrapper for the Pardot (a salesforce.com company) API.",
     "license": "MIT",
     "authors": [
